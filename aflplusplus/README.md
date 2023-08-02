@@ -127,9 +127,31 @@ char __fastcall _afl_maybe_log(const char *a1, __int64 a2, __int64 a3, __int64 u
 - frida
 - nyx
 
+### dumb
+
+
+### forkserver
+
+### persistence
+
+### qemu-user
+
+### unicorn
+
+### frida
+
+### nyx
+
 ## 추천 타겟 유형
 
 
+
+## 실습
+- 각각의 타겟에 맞는 방식을 사용하여 fuzzing을 돌리시오.
+  - BlackBox (ARK)
+  - LibXML 
+ 
+*note: 인간적으로 harness는 미리 짜서 주자.*
 
 ## REF
 - http://commondatastorage.googleapis.com/fuzzbench-reports/oss-fuzz-benchmarks/index.html
