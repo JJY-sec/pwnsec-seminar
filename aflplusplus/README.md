@@ -8,7 +8,7 @@
 - oss-fuzz에서 제공하는 랭킹에 따르면, 가장 높은 성능을 보임
 ![image](https://github.com/JJY-sec/pwnsec-seminar/assets/64367280/c9e4cbe7-e2f1-4959-8e04-037a4edc1e0b)
 - 'AFLPlusplus이 최고니까, 무조건 AFLPlusplus 쓰면 됨!'은 아님
-  - 다양한 타겟이 있고, 그 타겟에 맞는 전략과 fuzzer를 선택하는 것도 능력
+  - 세상에는 다양한 타겟이 있고, 그 타겟에 맞는 전략과 fuzzer를 선택하는 것도 능력
 
 ## How to Calculate Coverage?
 다음 문단에서 설명할 executor에 따라서 coverage를 측정하는 방법이 달라진다. 가장 기본적인 방식인 compile-time coverage 측정을 기준으로 설명하겠다. 
@@ -76,29 +76,44 @@ int __cdecl main(int argc, const char **argv, const char **envp)
 - https://github.com/AFLplusplus/AFLplusplus/blob/stable/include/afl-as.h#L166
 
 IDA로 보면 결과물이 상당히 지저분하기 때문에, 필요한 부분만 발췌했다. 
+- [1] 환경변수에서 __AFL_SHM_ID라는 값을 가져온다. 이 값은 fuzzer와 target process가 공유하는 환경변수이다.
+- [2] __AFL_SHM_ID를 이용하여 공유 메모리를 할당한다. 이를 통해 fuzzer와 공유 메모리를 함께 소유할 수 있다.
+- [3] \_afl_prev_loc과 unique_value를 xor한다. 이 값을 cur_value라고 지칭한다.
+  - unique_value는 _afl_maybe_log의 인자이다. 각 block마다 다른 값을 가지며, 컴파일 타임에 랜덤한 값이 들어간다.
+- [5]  cur_value에 해당하는 idx에 shared memory의 값을 1증가한다.
 
 ```c
 char __fastcall _afl_maybe_log(const char *a1, __int64 a2, __int64 a3, __int64 unique_value)
 {
 ...
 
-      __AFL_SHM_ID = getenv("__AFL_SHM_ID");
+      __AFL_SHM_ID = getenv("__AFL_SHM_ID");//[1]
       if ( !__AFL_SHM_ID
         || (__AFL_SHM_ID_1 = atoi(__AFL_SHM_ID),
-            shared_memory = shmat(__AFL_SHM_ID_1, 0LL, 0),
+            shared_memory = shmat(__AFL_SHM_ID_1, 0LL, 0),//[2]
             shared_memory == (_BYTE *)-1LL) )
       {
 ...
       }
   }
-  cur_value = _afl_prev_loc ^ unique_value;
+  cur_value = _afl_prev_loc ^ unique_value; //[3]
   _afl_prev_loc ^= cur_value;
-  _afl_prev_loc = (unsigned __int64)_afl_prev_loc >> 1;
-  v8 = __CFADD__((*(_BYTE *)(shared_memory_2 + cur_value))++, 1);
+  _afl_prev_loc = (unsigned __int64)_afl_prev_loc >> 1;//[4]
+  v8 = __CFADD__((*(_BYTE *)(shared_memory_2 + cur_value))++, 1);//[5]
   *(_BYTE *)(shared_memory_2 + cur_value) += v8;
   return v5 + 127;
 }
 
+```
+
+퀴즈퀴즈
+
+- [4]에 대해서 설명하시오
+- hint : https://lcamtuf.coredump.cx/afl/technical_details.txt
+```
+  cur_location = <COMPILE_TIME_RANDOM>;
+  shared_mem[cur_location ^ prev_location]++; 
+  prev_location = cur_location >> 1;
 ```
 
 
@@ -117,5 +132,6 @@ char __fastcall _afl_maybe_log(const char *a1, __int64 a2, __int64 a3, __int64 u
 
 
 ## REF
-http://commondatastorage.googleapis.com/fuzzbench-reports/oss-fuzz-benchmarks/index.html
-https://aflplus.plus/papers/aflpp-woot2020.pdf
+- http://commondatastorage.googleapis.com/fuzzbench-reports/oss-fuzz-benchmarks/index.html
+- https://aflplus.plus/papers/aflpp-woot2020.pdf
+- https://lcamtuf.coredump.cx/afl/technical_details.txt
