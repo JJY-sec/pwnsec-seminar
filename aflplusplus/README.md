@@ -1,5 +1,5 @@
 # AFLPlusplus
-- AFL의 업그레이드 버전. 
+- masterpiece fuzzer인 AFL의 업그레이드 버전. 
 - fuzzer 중에서는 문서화가 가장 잘 되어 있음
 - 다양한 기능들이 업데이트되고 있음.
 
@@ -119,7 +119,6 @@ char __fastcall _afl_maybe_log(const char *a1, __int64 a2, __int64 a3, __int64 u
 
 
 ## executor 
-- dumb
 - forkserver
 - persistence
 - qemu-user
@@ -127,20 +126,88 @@ char __fastcall _afl_maybe_log(const char *a1, __int64 a2, __int64 a3, __int64 u
 - frida
 - nyx
 
-### dumb
-
-
 ### forkserver
+
+탄생 배경
+- fuzzing이란 무작위 입력값으로 프로그램을 실행하여 버그를 찾는 기법
+- target 프로그램을 엄청나게 많은 횟수 실행해야 함
+- target 프로그램을 더 빨리 실행할 수 있는 방법은 없을까? 
+
+
+
+- fork
+  - process를 복제하는 Syscall
+  - 새로운 프로세스는 child, 기존 프로세스는 parent
+```c
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+
+int main() {
+    pid_t pid;
+
+    // The fork() function is called.
+    pid = fork();
+
+    // fork() will return -1 if it failed.
+    if(pid < 0) {
+        printf("Fork failed.\n");
+        return 1;
+    }
+
+    // If pid is equal to 0, then the current process is the child process.
+    if(pid == 0) {
+        printf("This is the child process. PID: %d\n", getpid());
+    }
+    // If pid is greater than 0, then the current process is the parent.
+    else {
+        printf("This is the parent process. PID: %d, Child's PID: %d\n", getpid(), pid);
+    }
+
+    return 0;
+}
+
+```
+
+
+forkserver에 대한 설명 ... 
+
+
+
 
 ### persistence
 
+
+target function에 대한 설명 ... 
+굳이 매번 새로운 process를 생성할 필요가 있는가 ...
+단점도 언급
+- side effect
+
+### nyx
+- snapshot
+
+
+
+
+### 중간 요약
+- forkserver
+- persistence
+- nyx (snapshot)
+기본적으로 fuzzer의 executor는 이 3가지 방식에서 벗어나지 않음. (현재까지는) 단지 이 방법론을 구현하는 방법과 툴이 다를 뿐. 
+
 ### qemu-user
+
+소스코드가 없을 때
+
+- wine mode
+- winafl이라는 강력한 라이벌
+- forkserver
 
 ### unicorn
 
+
 ### frida
 
-### nyx
 
 ## 추천 타겟 유형
 
@@ -152,6 +219,7 @@ char __fastcall _afl_maybe_log(const char *a1, __int64 a2, __int64 a3, __int64 u
   - LibXML 
  
 *note: 인간적으로 harness는 미리 짜서 주자.*
+실습 의도 : 각각의 executor에 대해서 이해하고, 상황에 맞는 executor를 고를 능력이 있는가. 
 
 ## REF
 - http://commondatastorage.googleapis.com/fuzzbench-reports/oss-fuzz-benchmarks/index.html
