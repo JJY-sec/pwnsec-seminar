@@ -71,6 +71,36 @@ int __cdecl main(int argc, const char **argv, const char **envp)
 }
 ```
 
+코드의 분기가 나뉠 때마다 _afl_maybe_log 함수가 호출되는 것을 볼 수 있다.
+이제 _afl_maybe_log 함수를 분석해보자. AFLPlusplus 코드를 보면 해당 함수는 어셈블리로 짜였다. 
+- https://github.com/AFLplusplus/AFLplusplus/blob/stable/include/afl-as.h#L166
+
+IDA로 보면 결과물이 상당히 지저분하기 때문에, 필요한 부분만 발췌했다. 
+
+```c
+char __fastcall _afl_maybe_log(const char *a1, __int64 a2, __int64 a3, __int64 unique_value)
+{
+...
+
+      __AFL_SHM_ID = getenv("__AFL_SHM_ID");
+      if ( !__AFL_SHM_ID
+        || (__AFL_SHM_ID_1 = atoi(__AFL_SHM_ID),
+            shared_memory = shmat(__AFL_SHM_ID_1, 0LL, 0),
+            shared_memory == (_BYTE *)-1LL) )
+      {
+...
+      }
+  }
+  cur_value = _afl_prev_loc ^ unique_value;
+  _afl_prev_loc ^= cur_value;
+  _afl_prev_loc = (unsigned __int64)_afl_prev_loc >> 1;
+  v8 = __CFADD__((*(_BYTE *)(shared_memory_2 + cur_value))++, 1);
+  *(_BYTE *)(shared_memory_2 + cur_value) += v8;
+  return v5 + 127;
+}
+
+```
+
 
 
 ## executor 
